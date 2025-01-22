@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("JunkLang")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+452fb2f047da28b1967afda65c928c08741cb864")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+6e6672177bb0720e877460a4fd9799e689e28496")]
 [assembly: System.Reflection.AssemblyProductAttribute("JunkLang")]
 [assembly: System.Reflection.AssemblyTitleAttribute("JunkLang")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
