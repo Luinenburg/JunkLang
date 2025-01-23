@@ -1,20 +1,29 @@
-﻿namespace JunkLang;
+﻿namespace JunkLang.Machine;
 
-public class Processor
+public record Function(int CallPosition, int Parameter) : IFlowStatement;
+public record Logic (int CallPosition) : IFlowStatement;
+
+public class Processor (int position)
 {
-    private int position = 0;
-    private readonly Dictionary<string, float> Registers = new Dictionary<string, float>();
-    private readonly Dictionary<string, int> Labels = new Dictionary<string, int>();
-    private Dictionary<string, int> Functions = new Dictionary<string, int>();
-    private Queue<(string, int, int)> Calls = new Queue<(string, int, int)>();
-
-    public Processor()
+    public int Position { get; private set; } = position;
+    
+    // Stores the registers available to the processor
+    private readonly Dictionary<string, float> Registers = new()
     {
-        Registers.Add("#IREG", 0f);
-        Registers.Add("#FREG", 0f);
-        Registers.Add("#SWAP", 0f);
-        Registers.Add("#INTR", 0f);
-    }
+        ["#IREG"] = 0f,
+        ["#FREG"] = 0f,
+        ["#SWAP"] = 0f,
+        ["#INTR"] = 0f
+    };
+    
+    // Stores the labels and their positions
+    private readonly Dictionary<string, int> Labels = new();
+    
+    // Stores the functions and their positions
+    private Dictionary<string, int> Functions = new();
+    
+    // Stores the position of all call and logic instructions
+    private Stack<IFlowStatement> DoneStack = new();
 
     public void Swap(string reg1, string reg2)
     {
@@ -95,28 +104,34 @@ public class Processor
 
     public void Label(string name)
     {
-        if (int.TryParse(name, out var value)) return;
-        Labels.Add(name, position);
+        if (int.TryParse(name, out _)) return;
+        Labels.Add(name, Position);
     }
 
     public void Goto(string name)
     {
         if (int.TryParse(name, out var value))
         {
-            position = value;
+            Position = value;
             return;
         }
-        position = Labels[name];
+        Position = Labels[name];
     }
 
     public void Func(string name)
     {
-        Functions.Add(name, position);
+        Functions.Add(name, Position);
     }
 
     public void Call(string name, int parameter)
     {
-        Calls.Enqueue((name, position, parameter));
-        position = Functions.GetValueOrDefault(name, -1);
+        DoneStack.Push(new Function(Position, parameter));
+        Position = Functions.GetValueOrDefault(name, -1);
+    }
+
+    public void IfEquals(string left, string right)
+    {
+        var intLeft = float.TryParse(left, out var a) ? a : Registers[left];
+        var intRight = float.TryParse(right, out var b) ? b : Registers[right];
     }
 }
