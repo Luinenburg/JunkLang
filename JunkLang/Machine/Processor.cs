@@ -128,10 +128,22 @@ public class Processor (int position)
         DoneStack.Push(new Function(Position, parameter));
         Position = Functions.GetValueOrDefault(name, -1);
     }
-
-    public void IfEquals(string left, string right)
+    
+    public bool If(string left, string right, Func<float, float, bool> condition)
     {
-        var intLeft = float.TryParse(left, out var a) ? a : Registers[left];
-        var intRight = float.TryParse(right, out var b) ? b : Registers[right];
+        var numLeft = float.TryParse(left, out var a) ? a : Registers[left];
+        var numRight = float.TryParse(right, out var b) ? b : Registers[right];
+        if (!condition(numLeft, numRight)) return false;
+        DoneStack.Push(new Logic(Position));
+        return true;
+    }
+
+    public void OutputRegister(string register)
+    {
+        Console.Write(Registers[register]);
+    }
+
+    public void InputRegister(string register)
+    {
     }
 }
