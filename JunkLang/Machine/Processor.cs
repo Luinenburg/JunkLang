@@ -145,5 +145,6 @@ public class Processor (int position)
 
     public void InputRegister(string register)
     {
+        Registers[register] = float.TryParse(Console.ReadLine(), out var b) ? b : Registers[register];
     }
 }
