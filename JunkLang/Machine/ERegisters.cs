@@ -2,8 +2,9 @@
 
 public enum ERegisters
 {
+    NonRegister,
     IntegerRegister,
     FloatRegister,
     SwapRegister,
-    IntermediaryRegister
+    IntermediaryRegister,
 }

@@ -10,10 +10,10 @@ public class Processor (int position)
     // Stores the registers available to the processor
     private readonly Dictionary<ERegisters, float> Registers = new()
     {
-        [Machine.ERegisters.IntegerRegister] = 0f,
-        [Machine.ERegisters.FloatRegister] = 0f,
-        [Machine.ERegisters.SwapRegister] = 0f,
-        [Machine.ERegisters.IntermediaryRegister] = 0f
+        [ERegisters.IntegerRegister] = 0f,
+        [ERegisters.FloatRegister] = 0f,
+        [ERegisters.SwapRegister] = 0f,
+        [ERegisters.IntermediaryRegister] = 0f
     };
     
     // Stores the labels and their positions
@@ -25,15 +25,47 @@ public class Processor (int position)
     // Stores the position of all call and logic instructions
     private Stack<IFlowStatement> DoneStack = new();
 
-    public static ERegisters? StringToReg(string register)
+    public static bool TryStringToReg(string register, out ERegisters value)
     {
-        return register switch
+        switch (register)
         {
-            "#IREG" => Machine.ERegisters.IntegerRegister,
-            "#FREG" => Machine.ERegisters.FloatRegister,
-            "#SWAP" => Machine.ERegisters.SwapRegister,
-            "#INTR" => Machine.ERegisters.IntermediaryRegister,
-            _ => null
+            case "#IREG":
+                value = ERegisters.IntegerRegister;
+                return true;
+            case "#FREG":
+                value = ERegisters.FloatRegister;
+                return true;
+            case "#SWAP":
+                value = ERegisters.SwapRegister;
+                return true;
+            case "#INTR":
+                value = ERegisters.IntermediaryRegister;
+                return true;
+            default:
+                value = ERegisters.NonRegister;
+                return false;
+        };
+    }
+
+    private bool TryStringToRegValue(string register, out float value)
+    {
+        switch (register)
+        {
+            case "#IREG":
+                value = Registers[ERegisters.IntegerRegister];
+                return true;
+            case "#FREG":
+                value = Registers[ERegisters.FloatRegister];
+                return true;
+            case "#SWAP":
+                value = Registers[ERegisters.SwapRegister];
+                return true;
+            case "#INTR":
+                value = Registers[ERegisters.IntermediaryRegister];
+                return true;
+            default:
+                value = float.NaN;
+                return false;
         };
     }
 
@@ -59,9 +91,8 @@ public class Processor (int position)
             Registers[reg] += value;
             return;
         }
-        
-        var leftReg = StringToReg(left);
-        if (leftReg is not null) Registers[reg] = equation(Registers[reg], Registers[(ERegisters) leftReg]);
+
+        if (TryStringToRegValue(left, out value)) Registers[reg] = equation(Registers[reg], value);
     }
 
     public void Label(string name)
@@ -72,12 +103,7 @@ public class Processor (int position)
 
     public void Goto(string name)
     {
-        if (int.TryParse(name, out var value))
-        {
-            Position = value;
-            return;
-        }
-        Position = Labels[name];
+        Position = int.TryParse(name, out var value) ? value : Labels[name];
     }
 
     public void Func(string name)
@@ -94,14 +120,10 @@ public class Processor (int position)
     public bool If(string left, string right, Func<float, float, bool> condition)
     {
         // This is the reason I don't hear from God very much anymore.
-        float? leftNumIsh = float.TryParse(left, out var lresult) ? lresult : null;
-        float? rightNumIsh = float.TryParse(left, out var rresult) ? rresult : null;
-        var leftReg = StringToReg(left);
-        var rightReg = StringToReg(right);
-        var leftNum = leftNumIsh ?? (leftReg is null ? null : Registers[(ERegisters) leftReg]);
-        var rightNum = rightNumIsh ?? (rightReg is null ? null : Registers[(ERegisters) rightReg]);
+        var leftNum = float.TryParse(left, out var lresult) ? lresult : TryStringToRegValue(left, out var llresult) ? llresult : float.NaN;
+        var rightNum = float.TryParse(left, out var rresult) ? rresult : TryStringToRegValue(right, out var rrresult) ? rrresult : float.NaN;
         
-        if (leftNum is null || rightNum is null || condition((float) leftNum, (float) rightNum)) return false;
+        if (leftNum is float.NaN || rightNum is float.NaN || !condition(leftNum, rightNum)) return false;
         DoneStack.Push(new Logic(Position));
         return true;
     }
