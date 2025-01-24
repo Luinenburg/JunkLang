@@ -8,12 +8,12 @@ public class Processor (int position)
     public int Position { get; private set; } = position;
     
     // Stores the registers available to the processor
-    private readonly Dictionary<string, float> Registers = new()
+    private readonly Dictionary<ERegisters, float> Registers = new()
     {
-        ["#IREG"] = 0f,
-        ["#FREG"] = 0f,
-        ["#SWAP"] = 0f,
-        ["#INTR"] = 0f
+        [Machine.ERegisters.IntegerRegister] = 0f,
+        [Machine.ERegisters.FloatRegister] = 0f,
+        [Machine.ERegisters.SwapRegister] = 0f,
+        [Machine.ERegisters.IntermediaryRegister] = 0f
     };
     
     // Stores the labels and their positions
@@ -25,81 +25,43 @@ public class Processor (int position)
     // Stores the position of all call and logic instructions
     private Stack<IFlowStatement> DoneStack = new();
 
-    public void Swap(string reg1, string reg2)
+    public static ERegisters? StringToReg(string register)
+    {
+        return register switch
+        {
+            "#IREG" => Machine.ERegisters.IntegerRegister,
+            "#FREG" => Machine.ERegisters.FloatRegister,
+            "#SWAP" => Machine.ERegisters.SwapRegister,
+            "#INTR" => Machine.ERegisters.IntermediaryRegister,
+            _ => null
+        };
+    }
+
+    public void Swap(ERegisters reg1, ERegisters reg2)
     {
         (Registers[reg1], Registers[reg2]) = (Registers[reg2], Registers[reg1]);
     }
 
-    public void Copy(string reg1, string reg2)
+    public void Copy(ERegisters reg1, ERegisters reg2)
     {
         Registers[reg2] = Registers[reg1];
     }
 
-    public void Set(float value, string reg)
+    public void Set(float value, ERegisters reg)
     {
         Registers[reg] = value;
     }
 
-    public void Add(string left, string reg)
+    public void Arithmetic(string left, ERegisters reg, Func<float, float, float> equation)
     {
         if (float.TryParse(left, out var value))
         {
             Registers[reg] += value;
             return;
         }
-
-        Registers[reg] += Registers[left];
-    }
-    
-    public void Sub(string left, string reg)
-    {
-        if (float.TryParse(left, out var value))
-        {
-            Registers[reg] -= value;
-            return;
-        }
-
-        Registers[reg] -= Registers[left];
-    }
-    public void Mult(string left, string reg)
-    {
-        if (float.TryParse(left, out var value))
-        {
-            Registers[reg] *= value;
-            return;
-        }
-
-        Registers[reg] *= Registers[left];
-    }
-    public void Div(string left, string reg)
-    {
-        if (float.TryParse(left, out var value))
-        {
-            Registers[reg] /= value;
-            return;
-        }
-
-        Registers[reg] /= Registers[left];
-    }
-    public void SubReverse(string left, string reg)
-    {
-        if (float.TryParse(left, out var value))
-        {
-            Registers[reg] = value - Registers[reg];
-            return;
-        }
-
-        Registers[reg] = Registers[left] - Registers[reg];
-    }
-    public void DivReverse(string left, string reg)
-    {
-        if (float.TryParse(left, out var value))
-        {
-            Registers[reg] = value / Registers[reg];
-            return;
-        }
-
-        Registers[reg] = Registers[left] / Registers[reg];
+        
+        var leftReg = StringToReg(left);
+        if (leftReg is not null) Registers[reg] = equation(Registers[reg], Registers[(ERegisters) leftReg]);
     }
 
     public void Label(string name)
@@ -131,19 +93,25 @@ public class Processor (int position)
     
     public bool If(string left, string right, Func<float, float, bool> condition)
     {
-        var numLeft = float.TryParse(left, out var a) ? a : Registers[left];
-        var numRight = float.TryParse(right, out var b) ? b : Registers[right];
-        if (!condition(numLeft, numRight)) return false;
+        // This is the reason I don't hear from God very much anymore.
+        float? leftNumIsh = float.TryParse(left, out var lresult) ? lresult : null;
+        float? rightNumIsh = float.TryParse(left, out var rresult) ? rresult : null;
+        var leftReg = StringToReg(left);
+        var rightReg = StringToReg(right);
+        var leftNum = leftNumIsh ?? (leftReg is null ? null : Registers[(ERegisters) leftReg]);
+        var rightNum = rightNumIsh ?? (rightReg is null ? null : Registers[(ERegisters) rightReg]);
+        
+        if (leftNum is null || rightNum is null || condition((float) leftNum, (float) rightNum)) return false;
         DoneStack.Push(new Logic(Position));
         return true;
     }
 
-    public void OutputRegister(string register)
+    public void OutputRegister(ERegisters register)
     {
         Console.Write(Registers[register]);
     }
 
-    public void InputRegister(string register)
+    public void InputRegister(ERegisters register)
     {
         Registers[register] = float.TryParse(Console.ReadLine(), out var b) ? b : Registers[register];
     }
